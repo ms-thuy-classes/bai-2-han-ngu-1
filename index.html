@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ms. Thúy · Học tiếng Trung (Nghe chép Hán tự)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .flip-card { background-color: transparent; width: 100%; height: 420px; perspective: 1500px; cursor: pointer; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; border-radius: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .flipped { transform: rotateY(180deg); }
+        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 2rem; display: flex; flex-direction: column; justify-content: center; padding: 1.5rem; }
+        .card-front { background: white; border: 2px solid #fef3c7; }
+        .card-back { background: #fffcf5; transform: rotateY(180deg); text-align: left; border: 2px solid #fbbf24; }
+        .audio-btn { width: 48px; height: 48px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #fbbf24; color: white; cursor: pointer; transition: all 0.2s; border: none; }
+        .audio-btn:hover { background: #f59e0b; transform: scale(1.05); }
+        .feedback-correct { border: 3px solid #22c55e !important; background-color: #f0fdf4; }
+        .feedback-wrong { border: 3px solid #ef4444 !important; background-color: #fef2f2; }
+        .info-box { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen antialiased font-sans">
+
+    <div class="max-w-2xl mx-auto px-4 py-8">
+        <div id="homeSection">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-black text-amber-600 uppercase tracking-tight">Chinese with Ms. Thúy</h1>
+                <p class="text-slate-500 font-medium italic">Bài 2: Hán ngữ 1 · Luyện Nghe & Viết Hán tự</p>
+            </div>
+
+            <div class="flip-card mb-8" onclick="document.getElementById('cardInner').classList.toggle('flipped')">
+                <div class="flip-card-inner" id="cardInner">
+                    <div class="card-front">
+                        <div class="text-7xl font-bold text-slate-800 mb-4" id="frontHanzi">忙</div>
+                        <div class="flex items-center justify-center gap-3">
+                            <span class="text-2xl text-amber-600 font-semibold" id="frontPinyin">máng</span>
+                            <button onclick="event.stopPropagation(); speak(vocabulary[currentIndex].hanzi)" class="audio-btn shadow-md"><i class="fas fa-volume-up"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-back">
+                        <h3 class="text-2xl font-bold text-amber-700 mb-4" id="backMeaning">Bận</h3>
+                        <div class="space-y-4 p-5 bg-white rounded-2xl border border-amber-100">
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Ví dụ:</p>
+                            <p class="text-2xl font-bold text-slate-800" id="exChinese">我很忙。</p>
+                            <p class="text-md text-amber-600 font-medium italic" id="exPinyin">Wǒ hěn máng.</p>
+                            <p class="text-sm text-slate-600" id="exMeaning">Tôi rất bận.</p>
+                            <button onclick="event.stopPropagation(); speak(vocabulary[currentIndex].example_ch)" class="audio-btn mt-2"><i class="fas fa-comment-dots"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="prevCard()" class="bg-white p-4 rounded-2xl font-bold text-slate-600 border shadow-sm active:scale-95 transition">Trước</button>
+                <button onclick="nextCard()" class="bg-white p-4 rounded-2xl font-bold text-slate-600 border shadow-sm active:scale-95 transition">Sau</button>
+                <button onclick="openQuiz()" class="col-span-2 bg-slate-800 text-white p-5 rounded-2xl font-black shadow-lg hover:bg-slate-900 transition uppercase tracking-widest">BẮT ĐẦU KIỂM TRA</button>
+            </div>
+        </div>
+
+        <div id="quizSection" class="hidden">
+            <div id="quizContainer" class="bg-white rounded-3xl p-6 shadow-xl border-2 border-slate-100 min-h-[500px] flex flex-col transition-all">
+                <div class="flex justify-between items-center mb-6">
+                    <span id="quizTypeLabel" class="bg-amber-100 text-amber-700 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">Type</span>
+                    <span id="quizProgress" class="text-slate-400 font-mono text-sm">0/0</span>
+                </div>
+                
+                <div id="questionArea" class="flex-1 text-center flex flex-col justify-center">
+                    </div>
+                
+                <div id="quickInfo" class="hidden info-box mt-4 p-5 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Đáp án chuẩn:</p>
+                            <p id="infoHanzi" class="text-2xl font-bold text-slate-800"></p>
+                            <p id="infoPinyin" class="text-amber-600 font-medium italic"></p>
+                            <p id="infoMeaning" class="text-slate-600 text-sm mt-1"></p>
+                        </div>
+                        <button id="infoAudioBtn" class="audio-btn scale-75 shadow-sm"><i class="fas fa-volume-up"></i></button>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button id="checkBtn" onclick="handleQuizStep()" class="w-full bg-amber-500 text-white py-4 rounded-2xl font-bold text-lg shadow-md active:scale-95 transition">Kiểm tra</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultSection" class="hidden bg-white rounded-3xl p-8 shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-amber-100 rounded-full mb-4">
+                    <i class="fas fa-trophy text-4xl text-amber-500"></i>
+                </div>
+                <h2 class="text-2xl font-black text-slate-800 uppercase">Hoàn thành bài tập</h2>
+                <p id="scoreDisplay" class="text-6xl font-black text-amber-600 my-4">0/0</p>
+                
+                <div id="mistakeContainer" class="hidden text-left mt-8">
+                    <p class="text-rose-500 font-bold mb-4 uppercase text-xs tracking-widest border-b pb-2"><i class="fas fa-redo"></i> Cần lưu ý các từ này:</p>
+                    <div id="mistakeList" class="space-y-3 overflow-y-auto max-h-[300px] pr-2"></div>
+                </div>
+            </div>
+            <button onclick="location.reload()" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-bold shadow-lg uppercase tracking-widest">Học lại từ đầu</button>
+        </div>
+    </div>
+
+    <script>
+        const vocabulary = [
+            { hanzi: "忙", pinyin: "máng", meaning: "Bận", example_ch: "我很忙", example_py: "Wǒ hěn máng", example_vn: "Tôi rất bận" },
+            { hanzi: "吗", pinyin: "ma", meaning: "Từ để hỏi (không?)", example_ch: "你忙吗", example_py: "Nǐ máng ma", example_vn: "Bạn bận không?" },
+            { hanzi: "很", pinyin: "hěn", meaning: "Rất", example_ch: "他很好", example_py: "Tā hěn hǎo", example_vn: "Anh ấy rất khỏe" },
+            { hanzi: "难", pinyin: "nán", meaning: "Khó", example_ch: "汉语很难", example_py: "Hànyǔ hěn nán", example_vn: "Tiếng Trung rất khó" },
+            { hanzi: "太", pinyin: "tài", meaning: "Hơi, quá, lắm", example_ch: "我不太好", example_py: "Wǒ bú tài hǎo", example_vn: "Tôi không khỏe lắm" },
+            { hanzi: "爸爸", pinyin: "bàba", meaning: "Bố/Ba", example_ch: "我爸爸工作很忙", example_py: "Wǒ bàba gōngzuò hěn máng", example_vn: "Bố tôi công việc rất bận" },
+            { hanzi: "哥哥", pinyin: "gēge", meaning: "Anh trai", example_ch: "哥哥也忙吗", example_py: "Gēge yě máng ma", example_vn: "Anh trai cũng bận phải không?" },
+            { hanzi: "弟弟", pinyin: "dìdi", meaning: "Em trai", example_ch: "弟弟不忙", example_py: "Dìdi bù máng", example_vn: "Em trai không bận" },
+            { hanzi: "妹妹", pinyin: "mèimei", meaning: "Em gái", example_ch: "妹妹很好", example_py: "Mèimei hěn hǎo", example_vn: "Em gái rất khỏe" }
+        ];
+
+        let currentIndex = 0, quizList = [], quizIdx = 0, isChecking = true, score = 0, mistakes = [];
+        const sCorrect = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
+        const sWrong = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3');
+
+        function speak(text) { 
+            window.speechSynthesis.cancel(); 
+            const u = new SpeechSynthesisUtterance(text); 
+            u.lang = 'zh-CN'; 
+            u.rate = 0.8; 
+            window.speechSynthesis.speak(u); 
+        }
+
+        function updateFlashcard() {
+            const item = vocabulary[currentIndex];
+            document.getElementById('frontHanzi').innerText = item.hanzi;
+            document.getElementById('frontPinyin').innerText = item.pinyin;
+            document.getElementById('backMeaning').innerText = item.meaning;
+            document.getElementById('exChinese').innerText = item.example_ch;
+            document.getElementById('exPinyin').innerText = item.example_py;
+            document.getElementById('exMeaning').innerText = item.example_vn;
+            document.getElementById('cardInner').classList.remove('flipped');
+        }
+
+        function nextCard() { currentIndex = (currentIndex + 1) % vocabulary.length; updateFlashcard(); }
+        function prevCard() { currentIndex = (currentIndex - 1 + vocabulary.length) % vocabulary.length; updateFlashcard(); }
+
+        function openQuiz() {
+            quizList = []; mistakes = []; score = 0; quizIdx = 0;
+            // Tạo tổ hợp các loại câu hỏi cho mỗi từ
+            vocabulary.forEach(item => {
+                quizList.push({ type: 'audio_word', data: item }); // Nghe từ ghi chữ Hán
+                quizList.push({ type: 'audio_sentence', data: item }); // Nghe câu ghi chữ Hán
+            });
+            quizList.sort(() => Math.random() - 0.5); // Trộn ngẫu nhiên
+            document.getElementById('homeSection').classList.add('hidden');
+            document.getElementById('quizSection').classList.remove('hidden');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const q = quizList[quizIdx];
+            const area = document.getElementById('questionArea');
+            const container = document.getElementById('quizContainer');
+            document.getElementById('quizProgress').innerText = `${quizIdx + 1}/${quizList.length}`;
+            document.getElementById('quickInfo').classList.add('hidden');
+            container.className = "bg-white rounded-3xl p-6 shadow-xl border-2 border-slate-100 min-h-[500px] flex flex-col transition-all";
+            isChecking = true;
+            document.getElementById('checkBtn').innerText = "Kiểm tra";
+
+            if (q.type === 'audio_word') {
+                document.getElementById('quizTypeLabel').innerText = "Nghe từ & Viết Hán tự";
+                area.innerHTML = `
+                    <div class="mb-8"><button onclick="speak('${q.data.hanzi}')" class="w-24 h-24 bg-amber-100 text-amber-600 rounded-full text-4xl shadow-inner active:scale-90 transition"><i class="fas fa-volume-up"></i></button></div>
+                    <input type="text" id="qInput" class="w-full border-b-4 border-slate-200 p-4 text-center text-4xl font-bold outline-none focus:border-amber-400 placeholder-slate-200" placeholder="Chữ Hán..." autofocus autocomplete="off">
+                `;
+            } else {
+                document.getElementById('quizTypeLabel').innerText = "Nghe câu & Viết Hán tự";
+                area.innerHTML = `
+                    <div class="mb-8"><button onclick="speak('${q.data.example_ch}')" class="w-24 h-24 bg-rose-100 text-rose-600 rounded-full text-4xl shadow-inner active:scale-90 transition"><i class="fas fa-headphones"></i></button></div>
+                    <input type="text" id="qInput" class="w-full border-b-4 border-slate-200 p-4 text-center text-2xl font-bold outline-none focus:border-amber-400 placeholder-slate-200" placeholder="Viết lại cả câu..." autofocus autocomplete="off">
+                `;
+            }
+
+            // Tự động đọc đề bài sau 0.5s
+            setTimeout(() => {
+                if(q.type === 'audio_word') speak(q.data.hanzi);
+                else speak(q.data.example_ch);
+            }, 500);
+
+            document.getElementById('qInput').onkeypress = (e) => { if(e.key === 'Enter') handleQuizStep(); };
+            document.getElementById('qInput').focus();
+        }
+
+        function handleQuizStep() {
+            if (isChecking) checkAnswer();
+            else {
+                quizIdx++;
+                if (quizIdx < quizList.length) showQuestion();
+                else showFinalResult();
+            }
+        }
+
+        function checkAnswer() {
+            const q = quizList[quizIdx];
+            const userVal = document.getElementById('qInput').value.trim();
+            const correctVal = q.type === 'audio_word' ? q.data.hanzi : q.data.example_ch;
+            const container = document.getElementById('quizContainer');
+            const infoBox = document.getElementById('quickInfo');
+            
+            isChecking = false;
+            document.getElementById('checkBtn').innerText = "Tiếp theo";
+            document.getElementById('qInput').disabled = true;
+
+            // Hiển thị khung giải nghĩa
+            infoBox.classList.remove('hidden');
+            if (q.type === 'audio_word') {
+                document.getElementById('infoHanzi').innerText = q.data.hanzi;
+                document.getElementById('infoPinyin').innerText = q.data.pinyin;
+                document.getElementById('infoMeaning').innerText = q.data.meaning;
+                document.getElementById('infoAudioBtn').onclick = () => speak(q.data.hanzi);
+                speak(q.data.hanzi); // Đọc lại từ
+            } else {
+                document.getElementById('infoHanzi').innerText = q.data.example_ch;
+                document.getElementById('infoPinyin').innerText = q.data.example_py;
+                document.getElementById('infoMeaning').innerText = q.data.example_vn;
+                document.getElementById('infoAudioBtn').onclick = () => speak(q.data.example_ch);
+                speak(q.data.example_ch); // Đọc lại cả câu
+            }
+
+            // So sánh kết quả (Xóa dấu câu cơ bản nếu có)
+            const cleanUser = userVal.replace(/[，。？！,?!\s]/g, "");
+            const cleanCorrect = correctVal.replace(/[，。？！,?!\s]/g, "");
+
+            if (cleanUser === cleanCorrect) {
+                sCorrect.play(); score++;
+                container.classList.add('feedback-correct');
+            } else {
+                sWrong.play(); mistakes.push(q);
+                container.classList.add('feedback-wrong');
+            }
+        }
+
+        function showFinalResult() {
+            document.getElementById('quizSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.remove('hidden');
+            document.getElementById('scoreDisplay').innerText = `${score}/${quizList.length}`;
+            
+            if (mistakes.length > 0) {
+                document.getElementById('mistakeContainer').classList.remove('hidden');
+                const list = document.getElementById('mistakeList');
+                list.innerHTML = "";
+                // Chỉ hiển thị từ vựng gốc của các câu sai để tránh danh sách quá dài
+                const uniqueMistakes = [...new Map(mistakes.map(m => [m.data.hanzi, m.data])).values()];
+                uniqueMistakes.forEach(item => {
+                    list.innerHTML += `
+                    <div class="p-4 bg-slate-50 rounded-2xl border-l-4 border-rose-400 flex justify-between items-center shadow-sm">
+                        <div>
+                            <span class="font-bold text-slate-800 text-lg">${item.hanzi}</span> 
+                            <span class="text-amber-600 italic text-sm ml-2">${item.pinyin}</span><br>
+                            <span class="text-xs text-slate-500 font-medium">${item.meaning}</span>
+                        </div>
+                        <button onclick="speak('${item.hanzi}')" class="text-amber-500 text-xl p-2"><i class="fas fa-volume-up"></i></button>
+                    </div>`;
+                });
+            }
+        }
+
+        // Khởi tạo card lần đầu
+        updateFlashcard();
+    </script>
+</body>
+</html>
